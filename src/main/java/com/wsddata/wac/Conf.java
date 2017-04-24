@@ -1,4 +1,4 @@
-package com.wsddata;
+package com.wsddata.wac;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -19,4 +19,10 @@ public class Conf {
 	
 	@Value("${redis.max_waitmillis}")
 	public int redisMaxWaitmillis;
+	
+	@Value("${ip.allow}")
+	public String ipAllow;
+	
+	@Value("${ip.applyPath}")
+	public String ipApplyPath;
 }

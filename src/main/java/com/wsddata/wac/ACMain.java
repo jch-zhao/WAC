@@ -1,4 +1,6 @@
-package com.wsddata;
+package com.wsddata.wac;
+
+import javax.servlet.http.HttpServletRequest;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringApplication;
@@ -9,10 +11,9 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseBody;
 import redis.clients.jedis.*;
 
-
 @Controller
 @EnableAutoConfiguration
-@ComponentScan
+@ComponentScan("com.wsddata.wac,com.wsddata.ipa")
 public class ACMain {
 	private Jedis jedis;
 	private JedisPool jedisPool;
@@ -30,43 +31,46 @@ public class ACMain {
 		}
 	}
 	
-	@RequestMapping("/login")
+	@RequestMapping("/1.0/login")
     @ResponseBody
-    String login() {
+    String login(HttpServletRequest request) {
 		jedis=jedisPool.getResource();
 		jedis.set("user", "{'id':'1','username:wangfang','organization:calis'}");
 		String value = jedis.get("user");
+		String username = request.getParameter("username");
+		String password = request.getParameter("password");
+		//request.getSession().setAttribute("token",value+"is token");
         return value;
     }
 	
-	@RequestMapping("/logout")
+	@RequestMapping("/admin/logout")
     @ResponseBody
-    String logout() {
-		jedis=jedisPool.getResource();
-		jedis.set("user", "{'id':'1','username:wangfang','organization:calis'}");
-		String value = jedis.get("user");
+    String logout(HttpServletRequest request) {
+		//jedis=jedisPool.getResource();
+		//jedis.set("user", "{'id':'1','username:wangfang','organization:calis'}");
+		String value = "logout";
         return value;
     }
 	
-	@RequestMapping("/registerApp")
+	@RequestMapping("/service/registerApp")
     @ResponseBody
     String registerApp() {
-		jedis=jedisPool.getResource();
-		jedis.set("user", "{'id':'1','username:wangfang','organization:calis'}");
-		String value = jedis.get("user");
+		//jedis=jedisPool.getResource();
+		//jedis.set("user", "{'id':'1','username:wangfang','organization:calis'}");
+		String value = "registerApp";
         return value;
     }
 	
-	@RequestMapping("/registerUser")
+	@RequestMapping("/approval/registerUser")
     @ResponseBody
     String registerUser() {
-		jedis=jedisPool.getResource();
-		jedis.set("user", "{'id':'1','username:wangfang','organization:calis'}");
-		String value = jedis.get("user");
+		//jedis=jedisPool.getResource();
+		//jedis.set("user", "{'id':'1','username:wangfang','organization:calis'}");
+		String value = "approval";
         return value;
     }
 	
-	@RequestMapping("/getAppInfo")
+	@RequestMapping("/1.0/getAppInfo")
     @ResponseBody
     String getAppInfo() {
 		jedis=jedisPool.getResource();
@@ -75,7 +79,7 @@ public class ACMain {
         return value;
     }
 	
-	@RequestMapping("/getUserInfo")
+	@RequestMapping("/1.0/getUserInfo")
     @ResponseBody
     String getUserInfo() {
 		jedis=jedisPool.getResource();
@@ -84,12 +88,21 @@ public class ACMain {
         return value;
     }
 	
-	@RequestMapping("/checkToken")
+	@RequestMapping("/1.0/checkToken")
     @ResponseBody
     String checkToken() {
 		jedis=jedisPool.getResource();
 		jedis.set("user", "{'id':'1','username:wangfang','organization:calis'}");
 		String value = jedis.get("user");
+        return value;
+    }
+	
+	@RequestMapping("/2.0/checkToken")
+    @ResponseBody
+    String checkToken2() {
+		//jedis=jedisPool.getResource();
+		//jedis.set("user", "{'id':'1','username:wangfang','organization:calis'}");
+		String value = "2.0/checkToken";
         return value;
     }
 	
