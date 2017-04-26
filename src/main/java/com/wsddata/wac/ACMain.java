@@ -1,9 +1,13 @@
 package com.wsddata.wac;
 
+import java.security.MessageDigest;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Random;
 import java.util.Set;
+import java.util.UUID;
+import sun.misc.BASE64Encoder;
 import javax.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringApplication;
@@ -41,19 +45,29 @@ public class ACMain {
     @ResponseBody
     String login(HttpServletRequest request) {
 		String result=null;
-		String systemId = request.getHeader("SystemId");
+		//String systemId = request.getHeader("SystemId");
+		String systemId = "test";
 		String username = request.getParameter("username");
 		String password = request.getParameter("password");
-		jedis=jedisPool.getResource();
+		if(systemId==null||systemId.equals("")||username==null||username.equals("")||password==null){
+			result="{'successful':false,'error':'Missing parameters'}";
+			return result;
+		}
 		
-		List<String> user=jedis.hmget("User",systemId+":"+username,password);
+		jedis=jedisPool.getResource();
+		List<String> user=jedis.hmget(systemId+":"+username,"password");
+		
 		if(password.equals(user.get(0))){
-			String token=generateToken();
-			jedis.zadd("TokenPool",new Date().getTime(),token);
-			request.getSession().setAttribute("token",token);
-			result="{'successful':true,'message':'ok'}";
+			String token=generateToken(systemId);
+			if(token!=null){
+				jedis.zadd("TokenPool",new Date().getTime(),token);
+				//request.getSession().setAttribute("token",token);//此处待改，应由应用系统操作
+				result="{'successful':true,'token':'"+token+"'}";
+			}else{
+				result="{'successful':false,'error':'token fail'}";
+			}
 		}else{
-			result="{'successful':true,'message':'ok'}";
+			result="{'successful':false,'error':'login fail'}";
 		}
         return result;
     }
@@ -90,7 +104,7 @@ public class ACMain {
     @ResponseBody
     String getAppInfo(HttpServletRequest request) {
 		jedis=jedisPool.getResource();
-		jedis.set("user", "{'id':'1','username:wangfang','organization:calis'}");
+		//jedis.set("user", "{'id':'1','username:wangfang','organization:calis'}");
 		String value = jedis.get("user");
         return value;
     }
@@ -133,7 +147,7 @@ public class ACMain {
 			jedis.zadd("TokenPool",new Date().getTime(),token);
 			result="{'successful':true,'message':'ok'}";
 		}else{
-			result="{'successful':false,'message':'No login'}";
+			result="{'successful':false,'error':'No login'}";
 		}
         return result;
     }
@@ -151,8 +165,30 @@ public class ACMain {
 		}
     }
 
-	private String generateToken(){
-		return "";
+	private String generateToken(String sysId){
+		BASE64Encoder encoder = new BASE64Encoder();
+		MessageDigest md;
+		String token=null;
+		try{
+			Random r=new Random();
+			byte[] b=new byte[16];
+			r.nextBytes(b);
+			String head=encoder.encode(b);
+			md = MessageDigest.getInstance("MD5");
+			md.update(sysId.getBytes());
+			byte[] id=md.digest();
+			String tAppid=encoder.encode(id);
+			UUID u=UUID.randomUUID();
+			String us=u.toString().replace("-","");
+			String u_base64=encoder.encode(us.getBytes());
+			token=head+tAppid+u_base64;
+			token=token.replace("=","");
+			token=token.replace("/","");
+			token=token.replace("+","");
+		}catch(Exception e){
+			e.printStackTrace();
+		}
+		return token;
 	}
 	
 	public static void main(String[] args) throws Exception {
