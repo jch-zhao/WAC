@@ -2,6 +2,7 @@ package com.wsddata.wac;
 
 import java.security.MessageDigest;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Random;
@@ -9,6 +10,8 @@ import java.util.Set;
 import java.util.UUID;
 import sun.misc.BASE64Encoder;
 import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
@@ -43,10 +46,11 @@ public class ACMain {
 	
 	@RequestMapping("/1.0/login")
     @ResponseBody
-    String login(HttpServletRequest request) {
+    String login(HttpServletRequest request, HttpServletResponse reponse) {
 		String result=null;
+		reponse.setContentType("application/json;charset=utf-8");
+		
 		String systemId = request.getHeader("systemId");
-		System.out.println(systemId);
 		String username = request.getParameter("username");
 		String password = request.getParameter("password");
 		if(systemId==null||systemId.equals("")||username==null||username.equals("")||password==null){
@@ -77,13 +81,15 @@ public class ACMain {
 	
 	@RequestMapping("/admin/logout")
     @ResponseBody
-    String logout(HttpServletRequest request) {
+    String logout(HttpServletRequest request, HttpServletResponse reponse) {
 		String result=null;
-		String username = request.getParameter("username");
+		reponse.setContentType("application/json;charset=utf-8");
+		
+		String token = request.getParameter("token");
 		try{
 			jedis=jedisPool.getResource();
-			//从tokenPool中清除此用户的token
-			result="";
+			jedis.zrem("TokenPool",token);
+			result="{'successful':true,'message':'ok'}";
 		}catch(Exception e){
 			result="{'successful':false,'error':'server error'}";
 		}finally{
@@ -92,14 +98,27 @@ public class ACMain {
         return result;
     }
 	
-	@RequestMapping("/service/registerApp")
+	@RequestMapping("/service/registerSystem")
     @ResponseBody
-    String registerApp(HttpServletRequest request) {
+    String registerApp(HttpServletRequest request, HttpServletResponse reponse) {
 		String result=null;
+		reponse.setContentType("application/json;charset=utf-8");
 		
+		String systemId = request.getHeader("systemId");
+		String sysId = request.getParameter("sysId");
+		String sysInfo = request.getParameter("sysInfo");
+		
+		if(systemId==null||sysId==null||!systemId.equals(sysId)){
+			result="{'successful':false,'error':'Missing parameters or parameters not matched'}";
+			return result;
+		}
+		if(sysInfo==null){
+			sysInfo="";
+		}
 		try{
 			jedis=jedisPool.getResource();
-			result="";
+			jedis.set("System:"+sysId,sysInfo);
+			result="{'successful':true,'message':'ok'}";
 		}catch(Exception e){
 			result="{'successful':false,'error':'server error'}";
 		}finally{
@@ -110,12 +129,36 @@ public class ACMain {
 	
 	@RequestMapping("/approval/registerUser")
     @ResponseBody
-    String registerUser(HttpServletRequest request) {
+    String registerUser(HttpServletRequest request, HttpServletResponse reponse) {
 		String result=null;
+		reponse.setContentType("application/json;charset=utf-8");
 		
+		String systemId = request.getHeader("systemId");
+		String username = request.getParameter("username");
+		String password = request.getParameter("password");
+		String userInfo = request.getParameter("userInfo");
+		if(systemId==null||systemId.equals("")||username==null||username.equals("")){
+			result="{'successful':false,'error':'Missing parameters'}";
+			return result;
+		}
+		if(password==null){
+			password="";
+		}
 		try{
 			jedis=jedisPool.getResource();
-			result="";
+			String existUser=null;
+			existUser=jedis.hget("",username);
+			//判断重名
+			if(existUser!=null){
+				result="{'successful':false,'error':'User exist'}";
+			}else{
+				HashMap<String, String> user = new HashMap();
+				user.put("username",username);
+				user.put("password",password);
+				user.put("userInfo",userInfo);
+				jedis.hmset(systemId+":"+username,user);
+				result="{'successful':true,'message':'ok'}";
+			}
 		}catch(Exception e){
 			result="{'successful':false,'error':'server error'}";
 		}finally{
@@ -126,12 +169,22 @@ public class ACMain {
 	
 	@RequestMapping("/1.0/getAppInfo")
     @ResponseBody
-    String getAppInfo(HttpServletRequest request) {
+    String getAppInfo(HttpServletRequest request, HttpServletResponse reponse) {
 		String result=null;
+		reponse.setContentType("application/json;charset=utf-8");
 		
+		String sysId = request.getParameter("sysId");
+		if(sysId==null){
+			result="{'successful':false,'error':'Missing parameters'}";
+			return result;
+		}
 		try{
 			jedis=jedisPool.getResource();
-			result="";
+			String sysInfo=null;
+			sysInfo=jedis.get("System:"+sysId);
+			if(sysInfo!=null){
+				result="{'successful':true,'sysInfo':'"+sysInfo+"'}";
+			}
 		}catch(Exception e){
 			result="{'successful':false,'error':'server error'}";
 		}finally{
@@ -142,12 +195,24 @@ public class ACMain {
 	
 	@RequestMapping("/1.0/getUserInfo")
     @ResponseBody
-    String getUserInfo(HttpServletRequest request) {
+    String getUserInfo(HttpServletRequest request, HttpServletResponse reponse) {
 		String result=null;
+		reponse.setContentType("application/json;charset=utf-8");
 		
+		String systemId = request.getHeader("systemId");
+		String username = request.getParameter("username");
+		if(systemId==null||systemId.equals("")||username==null||username.equals("")){
+			result="{'successful':false,'error':'Missing parameters'}";
+			return result;
+		}
 		try{
 			jedis=jedisPool.getResource();
-			result="";
+			List<String> userInfo=jedis.hmget(systemId+":"+username,"userInfo");
+			if(userInfo.size()>0){
+				result="'successful':true,'userInfo':'"+userInfo.get(0)+"'}";
+			}else{
+				result="'successful':false,'error':'user not exist'}";
+			}
 		}catch(Exception e){
 			result="{'successful':false,'error':'server error'}";
 		}finally{
@@ -158,12 +223,35 @@ public class ACMain {
 	
 	@RequestMapping("/1.0/changePassword")
     @ResponseBody
-    String changePassword(HttpServletRequest request) {
+    String changePassword(HttpServletRequest request, HttpServletResponse reponse) {
 		String result=null;
+		reponse.setContentType("application/json;charset=utf-8");
 		
+		String systemId = request.getHeader("systemId");
+		String username = request.getParameter("username");
+		String password = request.getParameter("password");
+		if(systemId==null||systemId.equals("")||username==null||username.equals("")||password==null){
+			result="{'successful':false,'error':'Missing parameters'}";
+			return result;
+		}
 		try{
 			jedis=jedisPool.getResource();
-			result="";
+			List<String> user=jedis.hmget(systemId+":"+username,"username","userInfo");
+			if(user.size()<=0){
+				//该用户不存在
+				result="{'successful':false,'error':'user not exist'}";
+			}else{
+				HashMap<String,String> changeUser=new HashMap<String, String>();
+				changeUser.put("username",user.get(0));
+				changeUser.put("password",password);
+				if(user.size()<=1){
+					changeUser.put("userInfo","");
+				}else{
+					changeUser.put("userInfo",user.get(1));
+				}
+				jedis.hmset(systemId+":"+username,changeUser);
+				result="{'successful':true,'message':'ok'}";
+			}
 		}catch(Exception e){
 			result="{'successful':false,'error':'server error'}";
 		}finally{
@@ -174,8 +262,10 @@ public class ACMain {
 	
 	@RequestMapping("/0.1/checkToken")
     @ResponseBody
-    String checkTokenTest(HttpServletRequest request) {
+    String checkTokenTest(HttpServletRequest request, HttpServletResponse reponse) {
 		String result=null;
+		reponse.setContentType("application/json;charset=utf-8");
+		
 		try{
 			jedis=jedisPool.getResource();
 			result="";
@@ -189,8 +279,10 @@ public class ACMain {
 	
 	@RequestMapping("/1.0/checkToken")
     @ResponseBody
-    String checkToken(HttpServletRequest request) {
+    String checkToken(HttpServletRequest request, HttpServletResponse reponse) {
 		String result = null;
+		reponse.setContentType("application/json;charset=utf-8");
+		
 		String token = request.getParameter("token");
 		try{
 			jedis=jedisPool.getResource();
