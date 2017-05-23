@@ -11,19 +11,20 @@ import java.util.UUID;
 import sun.misc.BASE64Encoder;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.Scheduled;
-import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.RestController;
+
 import redis.clients.jedis.*;
 
-@Controller
+@RestController
 @EnableAutoConfiguration
 @ComponentScan("com.wsddata.wac,com.wsddata.ipa")
 @EnableScheduling
@@ -44,15 +45,11 @@ public class ACMain {
 		}
 	}
 	
-	@RequestMapping("/1.0/login")
+	@RequestMapping(value="/1.0/login",method=RequestMethod.GET, produces="application/json;charset=UTF-8")
     @ResponseBody
-    String login(HttpServletRequest request, HttpServletResponse reponse) {
+    String login(HttpServletRequest request,String username,String password) {
 		String result=null;
-		reponse.setContentType("application/json;charset=utf-8");
-		
 		String systemId = request.getHeader("systemId");
-		String username = request.getParameter("username");
-		String password = request.getParameter("password");
 		if(systemId==null||systemId.equals("")||username==null||username.equals("")||password==null){
 			result="{'successful':false,'error':'Missing parameters'}";
 			return result;
@@ -79,13 +76,10 @@ public class ACMain {
         return result;
     }
 	
-	@RequestMapping("/admin/logout")
+	@RequestMapping(value="/admin/logout",method=RequestMethod.GET, produces="application/json;charset=UTF-8")
     @ResponseBody
-    String logout(HttpServletRequest request, HttpServletResponse reponse) {
+    String logout(String token) {
 		String result=null;
-		reponse.setContentType("application/json;charset=utf-8");
-		
-		String token = request.getParameter("token");
 		try{
 			jedis=jedisPool.getResource();
 			jedis.zrem("TokenPool",token);
@@ -98,16 +92,11 @@ public class ACMain {
         return result;
     }
 	
-	@RequestMapping("/service/registerSystem")
+	@RequestMapping(value="/service/registerSystem",method=RequestMethod.GET, produces="application/json;charset=UTF-8")
     @ResponseBody
-    String registerApp(HttpServletRequest request, HttpServletResponse reponse) {
+    String registerApp(HttpServletRequest request,String sysId,String sysInfo) {
 		String result=null;
-		reponse.setContentType("application/json;charset=utf-8");
-		
 		String systemId = request.getHeader("systemId");
-		String sysId = request.getParameter("sysId");
-		String sysInfo = request.getParameter("sysInfo");
-		
 		if(systemId==null||sysId==null||!systemId.equals(sysId)){
 			result="{'successful':false,'error':'Missing parameters or parameters not matched'}";
 			return result;
@@ -127,16 +116,12 @@ public class ACMain {
         return result;
     }
 	
-	@RequestMapping("/approval/registerUser")
+	@RequestMapping(value="/approval/registerUser",method=RequestMethod.POST , produces="application/json;charset=UTF-8")
     @ResponseBody
-    String registerUser(HttpServletRequest request, HttpServletResponse reponse) {
+    String registerUser(HttpServletRequest request, String username,String password,String userInfo) {
 		String result=null;
-		reponse.setContentType("application/json;charset=utf-8");
 		
 		String systemId = request.getHeader("systemId");
-		String username = request.getParameter("username");
-		String password = request.getParameter("password");
-		String userInfo = request.getParameter("userInfo");
 		if(systemId==null||systemId.equals("")||username==null||username.equals("")){
 			result="{'successful':false,'error':'Missing parameters'}";
 			return result;
@@ -167,13 +152,11 @@ public class ACMain {
         return result;
     }
 	
-	@RequestMapping("/1.0/getAppInfo")
+	@RequestMapping(value="/1.0/getAppInfo",method=RequestMethod.GET, produces="application/json;charset=UTF-8")
     @ResponseBody
-    String getAppInfo(HttpServletRequest request, HttpServletResponse reponse) {
+    String getAppInfo(String sysId) {
 		String result=null;
-		reponse.setContentType("application/json;charset=utf-8");
 		
-		String sysId = request.getParameter("sysId");
 		if(sysId==null){
 			result="{'successful':false,'error':'Missing parameters'}";
 			return result;
@@ -193,14 +176,12 @@ public class ACMain {
         return result;
     }
 	
-	@RequestMapping("/1.0/getUserInfo")
+	@RequestMapping(value="/1.0/getUserInfo",method=RequestMethod.GET, produces="application/json;charset=UTF-8")
     @ResponseBody
-    String getUserInfo(HttpServletRequest request, HttpServletResponse reponse) {
+    String getUserInfo(HttpServletRequest request, String username) {
 		String result=null;
-		reponse.setContentType("application/json;charset=utf-8");
 		
 		String systemId = request.getHeader("systemId");
-		String username = request.getParameter("username");
 		if(systemId==null||systemId.equals("")||username==null||username.equals("")){
 			result="{'successful':false,'error':'Missing parameters'}";
 			return result;
@@ -221,15 +202,12 @@ public class ACMain {
         return result;
     }
 	
-	@RequestMapping("/1.0/changePassword")
+	@RequestMapping(value="/1.0/changePassword",method=RequestMethod.GET, produces="application/json;charset=UTF-8")
     @ResponseBody
-    String changePassword(HttpServletRequest request, HttpServletResponse reponse) {
+    String changePassword(HttpServletRequest request, String username, String password) {
 		String result=null;
-		reponse.setContentType("application/json;charset=utf-8");
-		
+
 		String systemId = request.getHeader("systemId");
-		String username = request.getParameter("username");
-		String password = request.getParameter("password");
 		if(systemId==null||systemId.equals("")||username==null||username.equals("")||password==null){
 			result="{'successful':false,'error':'Missing parameters'}";
 			return result;
@@ -260,30 +238,10 @@ public class ACMain {
         return result;
     }
 	
-	@RequestMapping("/0.1/checkToken")
+	@RequestMapping(value="/1.0/checkToken",method=RequestMethod.GET, produces="application/json;charset=UTF-8")
     @ResponseBody
-    String checkTokenTest(HttpServletRequest request, HttpServletResponse reponse) {
-		String result=null;
-		reponse.setContentType("application/json;charset=utf-8");
-		
-		try{
-			jedis=jedisPool.getResource();
-			result="";
-		}catch(Exception e){
-			result="{'successful':false,'error':'server error'}";
-		}finally{
-			jedis.close();
-		}
-        return result;
-    }
-	
-	@RequestMapping("/1.0/checkToken")
-    @ResponseBody
-    String checkToken(HttpServletRequest request, HttpServletResponse reponse) {
+    String checkToken(String token) {
 		String result = null;
-		reponse.setContentType("application/json;charset=utf-8");
-		
-		String token = request.getParameter("token");
 		try{
 			jedis=jedisPool.getResource();
 			if(jedis.zscore("TokenPool",token)!=null){
