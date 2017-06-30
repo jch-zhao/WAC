@@ -88,21 +88,25 @@ public class AuthCenter {
 	
 	@RequestMapping(value="/1.0/logout",method=RequestMethod.GET, produces="application/json;charset=UTF-8")
     @ResponseBody
-    String logout(HttpServletRequest request, String token) {
-		String result=null;
+    Result logout(HttpServletRequest request, String token) {
+		Result result=new Result();
 		String systemId = request.getHeader("systemId");
 		
 		systemId="test";//测试用，正式版删除此行
 		if(systemId==null||systemId.equals("")||token==null){
-			
-			return "Missing parameters";
+			result.setSuccessful(false);
+			result.setMessage("Missing parameters");
+			return result;
 		}
 		try{
 			jedis=jedisPool.getResource();
 			jedis.zrem("TokenPool",token);
-			result="{'successful':true,'message':'ok'}";
+			result.setSuccessful(true);
+			result.setMessage("ok");
+			
 		}catch(Exception e){
-			result="{'successful':false,'error':'server error'}";
+			result.setSuccessful(false);
+			result.setMessage("server error");
 		}finally{
 			try{
 				jedis.close();
@@ -114,13 +118,14 @@ public class AuthCenter {
 	
 	@RequestMapping(value="/1.0/registerSystem",method=RequestMethod.GET, produces="application/json;charset=UTF-8")
     @ResponseBody
-    String registerApp(HttpServletRequest request,String sysId,String sysInfo) {
-		String result=null;
+    Result registerApp(HttpServletRequest request,String sysId,String sysInfo) {
+		Result result=new Result();
 		String systemId = request.getHeader("systemId");
 		
 		systemId="test1";//测试用，正式版删除此行
 		if(systemId==null||sysId==null||!systemId.equals(sysId)){
-			result="{'successful':false,'error':'Missing parameters or parameters not matched'}";
+			result.setSuccessful(false);
+			result.setMessage("Missing parameters or parameters not matched");
 			return result;
 		}
 		if(sysInfo==null){
@@ -134,14 +139,17 @@ public class AuthCenter {
 			jedis=jedisPool.getResource();
 			existApp=jedis.get("System:"+sysId);
 			if(existApp!=null){
-				System.out.println(existApp);
-				result="{'successful':false,'error':'系统已经存在了'}";
+				result.setSuccessful(false);
+				result.setMessage("System exist");
 				return result;
+			}else{
+				jedis.set("System:"+sysId,sysInfo);
+				result.setSuccessful(true);
+				result.setMessage("ok");
 			}
-			//jedis.set("System:"+sysId,sysInfo);
-			result="{'successful':true,'message':'ok'}";
 		}catch(Exception e){
-			result="{'successful':false,'message':'server error'}";
+			result.setSuccessful(false);
+			result.setMessage("server error");
 		}finally{
 			try{
 				jedis.close();
@@ -154,19 +162,19 @@ public class AuthCenter {
 	
 	@RequestMapping(value="/1.0/registerUser",method=RequestMethod.GET , produces="application/json;charset=UTF-8")
     @ResponseBody
-    String registerUser(HttpServletRequest request,String username,String password,String userInfo) {
-		String result=null;
+    Result registerUser(HttpServletRequest request,String username,String password,String userInfo) {
+		Result result=new Result();
 		String systemId = request.getHeader("systemId");
 		
 		systemId="test";//测试用，正式版删除此行
 		if(systemId==null||systemId.equals("")||username==null||username.equals("")){
-			result="{'successful':false,'error':'Missing parameters'}";
+			result.setSuccessful(false);
+			result.setMessage("Missing parameters");
 			return result;
 		}
 		if(password==null){
 			password="";
 		}
-		//解决输入编码问题
 		
 		try{
 			jedis=jedisPool.getResource();
@@ -174,17 +182,20 @@ public class AuthCenter {
 			existUser=jedis.hget("",username);
 			//判断重名
 			if(existUser!=null){
-				result="{'successful':false,'error':'User exist'}";
+				result.setSuccessful(false);
+				result.setMessage("User exist");
 			}else{
 				HashMap<String, String> user = new HashMap();
 				user.put("username",username);
 				user.put("password",password);
 				user.put("userInfo",userInfo);
 				jedis.hmset(systemId+":"+username,user);
-				result="{'successful':true,'message':'ok'}";
+				result.setSuccessful(true);
+				result.setMessage("ok");
 			}
 		}catch(Exception e){
-			result="{'successful':false,'error':'server error'}";
+			result.setSuccessful(false);
+			result.setMessage("server error");
 		}finally{
 			try{
 				jedis.close();
@@ -196,13 +207,14 @@ public class AuthCenter {
 	
 	@RequestMapping(value="/1.0/getAppInfo",method=RequestMethod.GET, produces="application/json;charset=UTF-8")
     @ResponseBody
-    String getAppInfo(HttpServletRequest request, String sysId) {
-		String result=null;
+    Result getAppInfo(HttpServletRequest request, String sysId) {
+		Result result=new Result();
 		String systemId = request.getHeader("systemId");
 		
 		systemId="test";//测试用，正式版删除此行
 		if(systemId==null||systemId.equals("")||sysId==null){
-			result="{'successful':false,'error':'Missing parameters'}";
+			result.setSuccessful(false);
+			result.setMessage("Missing parameters");
 			return result;
 		}
 		try{
@@ -210,10 +222,13 @@ public class AuthCenter {
 			String sysInfo=null;
 			sysInfo=jedis.get("System:"+sysId);
 			if(sysInfo!=null){
-				result="{'successful':true,'sysInfo':'"+sysInfo+"'}";
+				result.setSuccessful(true);
+				result.setMessage("ok");
+				result.setData("{'sysInfo':'"+sysInfo+"'}");
 			}
 		}catch(Exception e){
-			result="{'successful':false,'error':'server error'}";
+			result.setSuccessful(false);
+			result.setMessage("server error");
 		}finally{
 			try{
 				jedis.close();
@@ -225,25 +240,30 @@ public class AuthCenter {
 	
 	@RequestMapping(value="/1.0/getUserInfo",method=RequestMethod.GET, produces="application/json;charset=UTF-8")
     @ResponseBody
-    String getUserInfo(HttpServletRequest request, String username) {
-		String result=null;
+    Result getUserInfo(HttpServletRequest request, String username) {
+		Result result=new Result();
 		String systemId = request.getHeader("systemId");
 		
 		systemId="test";//测试用，正式版删除此行
 		if(systemId==null||systemId.equals("")||username==null||username.equals("")){
-			result="{'successful':false,'error':'Missing parameters'}";
+			result.setSuccessful(false);
+			result.setMessage("Missing parameters");
 			return result;
 		}
 		try{
 			jedis=jedisPool.getResource();
 			List<String> userInfo=jedis.hmget(systemId+":"+username,"userInfo");
 			if(userInfo.size()>0){
-				result="'successful':true,'userInfo':'"+userInfo.get(0)+"'}";
+				result.setSuccessful(true);
+				result.setMessage("ok");
+				result.setData("{'userInfo':'"+userInfo.get(0)+"'}");
 			}else{
-				result="'successful':false,'error':'user not exist'}";
+				result.setSuccessful(false);
+				result.setMessage("user not exist");
 			}
 		}catch(Exception e){
-			result="{'successful':false,'error':'server error'}";
+			result.setSuccessful(false);
+			result.setMessage("server error");
 		}finally{
 			try{
 				jedis.close();
@@ -255,13 +275,14 @@ public class AuthCenter {
 	
 	@RequestMapping(value="/1.0/changePassword",method=RequestMethod.GET, produces="application/json;charset=UTF-8")
     @ResponseBody
-    String changePassword(HttpServletRequest request, String username, String password) {
-		String result=null;
+    Result changePassword(HttpServletRequest request, String username, String password) {
+		Result result=new Result();
 		String systemId = request.getHeader("systemId");
 		
 		systemId="test";//测试用，正式版删除此行
 		if(systemId==null||systemId.equals("")||username==null||username.equals("")||password==null){
-			result="{'successful':false,'error':'Missing parameters'}";
+			result.setSuccessful(false);
+			result.setMessage("Missing parameters");
 			return result;
 		}
 		try{
@@ -269,7 +290,8 @@ public class AuthCenter {
 			List<String> user=jedis.hmget(systemId+":"+username,"username","userInfo");
 			if(user.size()<=0){
 				//该用户不存在
-				result="{'successful':false,'error':'user not exist'}";
+				result.setSuccessful(false);
+				result.setMessage("user not exist");
 			}else{
 				HashMap<String,String> changeUser=new HashMap<String, String>();
 				changeUser.put("username",user.get(0));
@@ -280,10 +302,12 @@ public class AuthCenter {
 					changeUser.put("userInfo",user.get(1));
 				}
 				jedis.hmset(systemId+":"+username,changeUser);
-				result="{'successful':true,'message':'ok'}";
+				result.setSuccessful(true);
+				result.setMessage("ok");
 			}
 		}catch(Exception e){
-			result="{'successful':false,'error':'server error'}";
+			result.setSuccessful(false);
+			result.setMessage("server error");
 		}finally{
 			try{
 				jedis.close();
@@ -295,22 +319,24 @@ public class AuthCenter {
 	
 	@RequestMapping(value="/1.0/checkToken",method=RequestMethod.GET, produces="application/json;charset=UTF-8")
     @ResponseBody
-    String checkToken(HttpServletRequest request,String token) {
-		String result = null;
+    Result checkToken(HttpServletRequest request,String token) {
+		Result result = new Result();
 		String systemId = request.getHeader("systemId");
 		
 		systemId="test";//测试用，正式版删除此行
-		
 		try{
 			jedis=jedisPool.getResource();
 			if(jedis.zscore("TokenPool",token)!=null){
 				jedis.zadd("TokenPool",new Date().getTime(),token);
-				result="{'successful':true,'message':'ok'}";
+				result.setSuccessful(true);
+				result.setMessage("ok");
 			}else{
-				result="{'successful':false,'error':'No login'}";
+				result.setSuccessful(false);
+				result.setMessage("No login");
 			}
 		}catch(Exception e){
-			result="{'successful':false,'error':'server error'}";
+			result.setSuccessful(false);
+			result.setMessage("server error");
 		}finally{
 			try{
 				jedis.close();
