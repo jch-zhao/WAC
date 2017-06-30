@@ -6,20 +6,15 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Random;
 import java.util.UUID;
-
-import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestController;
-
 import com.wsddata.wac.Conf;
 import com.wsddata.wac.Result;
-
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
 import redis.clients.jedis.JedisPoolConfig;
@@ -46,9 +41,11 @@ public class AuthCenter {
 	
 	@RequestMapping(value="/1.0/login",method=RequestMethod.GET, produces="application/json;charset=UTF-8")
     @ResponseBody
-    Result login(HttpServletRequest request,HttpServletResponse response,String username,String password) {
+    Result login(HttpServletRequest request,String username,String password) {
 		Result result=new Result();
 		String systemId = request.getHeader("systemId");
+		
+		systemId="test";//测试用，正式版删除此行
 		if(systemId==null||systemId.equals("")||username==null||username.equals("")||password==null){
 			result.setSuccessful(false);
 			result.setMessage("Missing parameters");
@@ -81,18 +78,23 @@ public class AuthCenter {
 			result.setMessage("Server error");
 			result.setData(null);
 		}finally{
-			jedis.close();
+			try{
+				jedis.close();
+			}catch(Exception e){		
+			}
 		}
-		
-		//response.addCookie();
         return result;
     }
 	
 	@RequestMapping(value="/1.0/logout",method=RequestMethod.GET, produces="application/json;charset=UTF-8")
     @ResponseBody
-    String logout(String token) {
+    String logout(HttpServletRequest request, String token) {
 		String result=null;
-		if(token==null){
+		String systemId = request.getHeader("systemId");
+		
+		systemId="test";//测试用，正式版删除此行
+		if(systemId==null||systemId.equals("")||token==null){
+			
 			return "Missing parameters";
 		}
 		try{
@@ -102,7 +104,10 @@ public class AuthCenter {
 		}catch(Exception e){
 			result="{'successful':false,'error':'server error'}";
 		}finally{
-			jedis.close();
+			try{
+				jedis.close();
+			}catch(Exception e){		
+			}
 		}
         return result;
     }
@@ -112,6 +117,8 @@ public class AuthCenter {
     String registerApp(HttpServletRequest request,String sysId,String sysInfo) {
 		String result=null;
 		String systemId = request.getHeader("systemId");
+		
+		systemId="test1";//测试用，正式版删除此行
 		if(systemId==null||sysId==null||!systemId.equals(sysId)){
 			result="{'successful':false,'error':'Missing parameters or parameters not matched'}";
 			return result;
@@ -120,13 +127,27 @@ public class AuthCenter {
 			sysInfo="";
 		}
 		try{
+			//要做判重
+			//System.out.println(sysInfo);
+			
+			String existApp=null;
 			jedis=jedisPool.getResource();
-			jedis.set("System:"+sysId,sysInfo);
+			existApp=jedis.get("System:"+sysId);
+			if(existApp!=null){
+				System.out.println(existApp);
+				result="{'successful':false,'error':'系统已经存在了'}";
+				return result;
+			}
+			//jedis.set("System:"+sysId,sysInfo);
 			result="{'successful':true,'message':'ok'}";
 		}catch(Exception e){
-			result="{'successful':false,'error':'server error'}";
+			result="{'successful':false,'message':'server error'}";
 		}finally{
-			jedis.close();
+			try{
+				jedis.close();
+			}catch(Exception e){		
+			}
+			
 		}
         return result;
     }
@@ -135,17 +156,18 @@ public class AuthCenter {
     @ResponseBody
     String registerUser(HttpServletRequest request,String username,String password,String userInfo) {
 		String result=null;
-		
-		//解决输入编码问题
-		
 		String systemId = request.getHeader("systemId");
-		if(username==null||username.equals("")){
+		
+		systemId="test";//测试用，正式版删除此行
+		if(systemId==null||systemId.equals("")||username==null||username.equals("")){
 			result="{'successful':false,'error':'Missing parameters'}";
 			return result;
 		}
 		if(password==null){
 			password="";
 		}
+		//解决输入编码问题
+		
 		try{
 			jedis=jedisPool.getResource();
 			String existUser=null;
@@ -164,17 +186,22 @@ public class AuthCenter {
 		}catch(Exception e){
 			result="{'successful':false,'error':'server error'}";
 		}finally{
-			jedis.close();
+			try{
+				jedis.close();
+			}catch(Exception e){		
+			}
 		}
         return result;
     }
 	
 	@RequestMapping(value="/1.0/getAppInfo",method=RequestMethod.GET, produces="application/json;charset=UTF-8")
     @ResponseBody
-    String getAppInfo(String sysId) {
+    String getAppInfo(HttpServletRequest request, String sysId) {
 		String result=null;
+		String systemId = request.getHeader("systemId");
 		
-		if(sysId==null){
+		systemId="test";//测试用，正式版删除此行
+		if(systemId==null||systemId.equals("")||sysId==null){
 			result="{'successful':false,'error':'Missing parameters'}";
 			return result;
 		}
@@ -188,7 +215,10 @@ public class AuthCenter {
 		}catch(Exception e){
 			result="{'successful':false,'error':'server error'}";
 		}finally{
-			jedis.close();
+			try{
+				jedis.close();
+			}catch(Exception e){		
+			}
 		}
         return result;
     }
@@ -197,8 +227,9 @@ public class AuthCenter {
     @ResponseBody
     String getUserInfo(HttpServletRequest request, String username) {
 		String result=null;
-		
 		String systemId = request.getHeader("systemId");
+		
+		systemId="test";//测试用，正式版删除此行
 		if(systemId==null||systemId.equals("")||username==null||username.equals("")){
 			result="{'successful':false,'error':'Missing parameters'}";
 			return result;
@@ -214,7 +245,10 @@ public class AuthCenter {
 		}catch(Exception e){
 			result="{'successful':false,'error':'server error'}";
 		}finally{
-			jedis.close();
+			try{
+				jedis.close();
+			}catch(Exception e){		
+			}
 		}
         return result;
     }
@@ -223,8 +257,9 @@ public class AuthCenter {
     @ResponseBody
     String changePassword(HttpServletRequest request, String username, String password) {
 		String result=null;
-
 		String systemId = request.getHeader("systemId");
+		
+		systemId="test";//测试用，正式版删除此行
 		if(systemId==null||systemId.equals("")||username==null||username.equals("")||password==null){
 			result="{'successful':false,'error':'Missing parameters'}";
 			return result;
@@ -250,7 +285,10 @@ public class AuthCenter {
 		}catch(Exception e){
 			result="{'successful':false,'error':'server error'}";
 		}finally{
-			jedis.close();
+			try{
+				jedis.close();
+			}catch(Exception e){		
+			}
 		}
         return result;
     }
@@ -259,6 +297,10 @@ public class AuthCenter {
     @ResponseBody
     String checkToken(HttpServletRequest request,String token) {
 		String result = null;
+		String systemId = request.getHeader("systemId");
+		
+		systemId="test";//测试用，正式版删除此行
+		
 		try{
 			jedis=jedisPool.getResource();
 			if(jedis.zscore("TokenPool",token)!=null){
@@ -270,7 +312,10 @@ public class AuthCenter {
 		}catch(Exception e){
 			result="{'successful':false,'error':'server error'}";
 		}finally{
-			jedis.close();
+			try{
+				jedis.close();
+			}catch(Exception e){		
+			}
 		}
         return result;
     }
@@ -300,37 +345,5 @@ public class AuthCenter {
 		}
 		return token;
 	}
-	
-	@RequestMapping(value="/0.0/test",method=RequestMethod.POST, produces="application/json;charset=UTF-8")
-    @ResponseBody
-	public String test(HttpServletRequest request){
-		String res=null;
-		Cookie[] cookies=request.getCookies();
-		if(cookies!=null&&cookies.length>0){
-			for(Cookie c:cookies){
-				res="cookie "+c.getName()+" is: "+c.getValue()+"\n";
-			}
-		}
-		res=res+"header appID is: "+request.getHeader("appID");
-		return res;
-	}
-	
-	@RequestMapping(value="/cookie",method=RequestMethod.GET, produces="application/json;charset=UTF-8")
-    @ResponseBody
-	public Result cookie(HttpServletRequest request,HttpServletResponse response){
-		//System.out.println("ServerName "+request.getServerName());
-		//System.out.println("RequestURI "+request.getRequestURI());
-		
-		Result r=new Result();
-		Cookie c=new Cookie("uname","zhangsan");
-		c.setDomain(request.getServerName());
-		c.setPath("/0.0/test");
-		c.setMaxAge(60);
 
-		response.addCookie(c);
-		r.setSuccessful(true);
-		r.setMessage("cookie is setted");
-
-		return r;
-	}
 }
